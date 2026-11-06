@@ -19,7 +19,7 @@ TAGS = {
     "current_liabilities": ("LiabilitiesCurrent",),
 }
 INSTANT = {"equity", "liabilities", "current_assets", "current_liabilities"}
-INVESTORS = ("Buffett", "Graham", "Burry")
+INVESTORS = ("Buffett", "Wood", "Burry")
 NUMBER = re.compile(r"(?<!\d)[+-]?\d[\d,]*(?:\.\d+)?%?(?!\d)")
 
 
@@ -96,15 +96,21 @@ def buffett_checks(rows):
     }
 
 
-def graham_checks(rows, current_ratio_threshold=2.0):
-    """Graham's checks: note the override used only for the threshold probe."""
-    incomes = [metric(r, "net_income") for r in rows]
-    ratio = metric(rows[-1], "current_ratio")
+def wood_checks(rows, revenue_growth_threshold=15.0):
+    """Classroom growth proxies, NOT Cathie Wood / ARK's official screens.
+
+    This 10-K-only panel cannot establish disruption, addressable market,
+    adoption, cost curves, or forward-looking valuation.
+    """
+    revenues = [metric(r, "revenue") for r in rows]
+    cash = [metric(r, "operating_cash_flow") for r in rows]
+    latest_growth = metric(rows[-1], "revenue_growth_latest")
     return {
-        f"Current ratio >= {current_ratio_threshold:.1f}, latest year":
-            "not known" if ratio is None else "pass" if ratio >= current_ratio_threshold else "fail",
-        "Net income positive every year": check_all(incomes, lambda x: x > 0),
-        "Net income grew, first year to last": check_pair(incomes[-1], incomes[0], lambda a, b: a > b),
+        "Revenue grew, first year to last": check_pair(revenues[-1], revenues[0], lambda a, b: a > b),
+        f"Latest revenue growth >= {revenue_growth_threshold:.1f}%":
+            "not known" if latest_growth is None else "pass" if latest_growth >= revenue_growth_threshold else "fail",
+        "Operating cash flow grew, first year to last":
+            check_pair(cash[-1], cash[0], lambda a, b: a > b),
     }
 
 
@@ -121,7 +127,7 @@ def burry_checks(rows):
     }
 
 
-def compute(companyfacts, graham_threshold=2.0):
+def compute(companyfacts, wood_growth_threshold=15.0):
     """Five 10-K fiscal-year rows, same numerical data for all three investor skills."""
     income = companyfacts.get("facts", {}).get("us-gaap", {}).get("NetIncomeLoss", {}).get("units", {}).get("USD", [])
     year_ends = sorted({x["end"] for x in income if valid_fact(x, True)}, reverse=True)[:5]
@@ -144,19 +150,27 @@ def compute(companyfacts, graham_threshold=2.0):
         facts["liabilities_to_equity"] = {"value": None if liab is None or eq is None or eq <= 0 else liab / eq,
                                           "tag": "Liabilities / StockholdersEquity"}
         rows.append({"fy_end": end, "metrics": facts})
+    for i, row in enumerate(rows):
+        previous = metric(rows[i - 1], "revenue") if i else None
+        current = metric(row, "revenue")
+        growth = None if previous is None or current is None or previous <= 0 else (current / previous - 1) * 100
+        row["metrics"]["revenue_growth_latest"] = {
+            "value": growth,
+            "tag": "derived: Revenue current / prior - 1" if growth is not None else "not known",
+        }
     checks = {
         "Buffett": buffett_checks(rows),
-        "Graham": graham_checks(rows, graham_threshold),
+        "Wood": wood_checks(rows, wood_growth_threshold),
         "Burry": burry_checks(rows),
     }
     return {"company": companyfacts.get("entityName", "Unknown company"),
-            "rows": rows, "checks": checks, "graham_threshold": graham_threshold}
+            "rows": rows, "checks": checks, "wood_growth_threshold": wood_growth_threshold}
 
 
 def formatted(name, value):
     if value is None:
-        return "not known" if name in ("roe", "owner_earnings", "current_ratio", "liabilities_to_equity") else "not found"
-    if name == "roe":
+        return "not known" if name in ("roe", "owner_earnings", "current_ratio", "liabilities_to_equity", "revenue_growth_latest") else "not found"
+    if name in ("roe", "revenue_growth_latest"):
         return f"{value:.1f}%"
     if name in ("current_ratio", "liabilities_to_equity"):
         return f"{value:.2f}"
@@ -195,14 +209,13 @@ def render(result):
 def main():
     parser = argparse.ArgumentParser(description="EDGAR 10-K three-investor panel")
     parser.add_argument("ticker", help="Ticker: COST or VT's largest company NVDA")
-    parser.add_argument("--graham-threshold", type=float, default=2.0,
-                        help="Classroom probe: 2.0 baseline, then try 1.0")
+    parser.add_argument("--wood-growth-threshold", type=float, default=15.0,
+                        help="Classroom revenue-growth proxy, not ARK policy (default 15 percent)")
     args = parser.parse_args()
-    if args.graham_threshold < 0:
-        parser.error("Threshold must be nonnegative")
-    print(render(compute(fetch_company(args.ticker), args.graham_threshold)))
+    if args.wood_growth_threshold < 0:
+        parser.error("Growth threshold must be nonnegative")
+    print(render(compute(fetch_company(args.ticker), args.wood_growth_threshold)))
 
 
 if __name__ == "__main__":
     main()
-
