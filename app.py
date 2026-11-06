@@ -13,8 +13,8 @@ st.title("Legend Investor Panel")
 st.caption("Data from SEC EDGAR; built with AI help, a learning demonstration, not investment advice.")
 
 ticker = st.text_input("US-listed company ticker", value="COST").strip().upper()
-graham_threshold = st.number_input("Graham current-ratio threshold (try 1.0 for the probe)",
-                                    min_value=0.0, value=2.0, step=0.1, format="%.1f")
+wood_growth_threshold = st.number_input("Wood-inspired revenue growth threshold (%; classroom proxy, not ARK policy)",
+                                    min_value=0.0, value=15.0, step=1.0, format="%.1f")
 if not re.fullmatch(r"[A-Z][A-Z0-9.-]{0,9}", ticker):
     st.error("Enter a ticker such as COST or NVDA.")
     st.stop()
@@ -26,7 +26,7 @@ def load_facts(symbol):
 
 
 try:
-    result = compute(load_facts(ticker), graham_threshold)
+    result = compute(load_facts(ticker), wood_growth_threshold)
 except Exception as exc:
     st.error(f"Unable to load verified 10-K data: {exc}")
     st.stop()
@@ -58,6 +58,7 @@ for investor, tests in result["checks"].items():
         checks.append({"Investor": investor, "Check": name, "Result": status})
 st.dataframe(pd.DataFrame(checks), hide_index=True, use_container_width=True)
 
+st.caption("Wood checks are backward-looking classroom growth proxies. Disruption, adoption, market opportunity, and valuation are not established by these 10-K figures.")
 st.subheader("Three investor memos")
 all_flags = {}
 cols = st.columns(3)
@@ -99,4 +100,3 @@ else:
 
 with st.expander("View exact printed numbers and XBRL tags used by the memos"):
     st.code(render(result), language="text")
-
