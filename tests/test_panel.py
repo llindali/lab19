@@ -50,7 +50,7 @@ class PanelTests(unittest.TestCase):
     def test_cost_matches_lab19_all_eight_checks(self):
         result = compute(sample_cost())
         self.assertEqual(list(result["checks"]["Buffett"].values()), ["pass"] * 3)
-        self.assertEqual(list(result["checks"]["Graham"].values()), ["fail", "pass", "pass"])
+        self.assertEqual(list(result["checks"]["Wood"].values()), ["pass", "fail", "pass"])
         self.assertEqual(list(result["checks"]["Burry"].values()), ["pass", "pass"])
         for expected, actual in zip(YEARS, result["rows"]):
             self.assertEqual(actual["fy_end"], expected[0])
@@ -63,8 +63,8 @@ class PanelTests(unittest.TestCase):
             self.assertEqual(formatted("roe", actual["metrics"]["roe"]["value"]),
                              f"{expected[3] / expected[6] * 100:.1f}%")
 
-    def test_graham_threshold_probe(self):
-        self.assertEqual(list(compute(sample_cost(), 1.0)["checks"]["Graham"].values()),
+    def test_wood_threshold_probe(self):
+        self.assertEqual(list(compute(sample_cost(), 10.0)["checks"]["Wood"].values()),
                          ["pass", "pass", "pass"])
 
     def test_missing_remains_unknown(self):
@@ -72,10 +72,11 @@ class PanelTests(unittest.TestCase):
         facts = fixture["facts"]["us-gaap"]
         del facts["PaymentsToAcquirePropertyPlantAndEquipment"]
         del facts["AssetsCurrent"]
+        del facts["RevenueFromContractWithCustomerExcludingAssessedTax"]
         del facts["Liabilities"]
         result = compute(fixture)
         self.assertEqual(result["checks"]["Buffett"]["Owner earnings positive every year"], "not known")
-        self.assertEqual(list(result["checks"]["Graham"].values())[0], "not known")
+        self.assertEqual(list(result["checks"]["Wood"].values())[0], "not known")
         self.assertEqual(list(result["checks"]["Burry"].values())[-1], "not known")
         self.assertEqual(result["rows"][0]["metrics"]["capital_spending"]["tag"], "not found")
 
@@ -90,7 +91,7 @@ class PanelTests(unittest.TestCase):
     def test_memo_guard_all_three(self):
         result = compute(sample_cost())
         folder = Path(__file__).resolve().parents[1] / "memos"
-        for investor in ("buffett", "graham", "burry"):
+        for investor in ("buffett", "wood", "burry"):
             memo = (folder / f"COST_{investor}.md").read_text(encoding="utf-8")
             self.assertEqual(unsupported_numbers(memo, result), [], investor)
         self.assertEqual(unsupported_numbers("I claim ROE 40.0%", result), ["40.0%"])
@@ -110,4 +111,3 @@ class PanelTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
-
