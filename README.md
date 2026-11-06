@@ -1,51 +1,38 @@
-# FIN 43900 — Lab 19: Legend Panel
+# FIN 43900 — Lab 19: Buffett / Cathie Wood / Burry (customized)
 
-Three independent investor skills (Buffett, Graham, Burry) examine the **same five annual SEC EDGAR 10-K facts**. Python calculates everything; the skills use printed facts to write judgment memos. No FAskills installation, paid API, market prices, or estimated missing figures.
+**Rubric warning:** The published assignment explicitly asks for Benjamin Graham and a current-ratio probe. This requested Cathie Wood substitution is **not** the professor's original rubric; seek approval if this is to be graded against the original assignment.
+
+The three skills read the **same five annual SEC EDGAR 10-K facts**, with all checks implemented in Python. Numbers come from code, missing data stays missing, and memo numbers are audited across all three investor memos. This project does not use stock prices, paid APIs, or install FAskills.
 
 ## Run
 
 ```bash
 python -m pip install -r requirements.txt
-```
-
-Set the SEC-mandated identifying User-Agent **using your own actual name and email**:
-
-- PowerShell: `$env:SEC_USER_AGENT="Your Name your-email@school.edu"`
-- macOS/Linux: `export SEC_USER_AGENT="Your Name your-email@school.edu"`
-
-```bash
+# Set SEC_USER_AGENT to your REAL name and email, e.g. "Your Name you@example.com"
 python panel.py COST
-python panel.py COST --graham-threshold 1.0
 python panel.py NVDA
 python -m streamlit run app.py
 python -m unittest discover -s tests -v
 ```
 
-The Streamlit app defaults to **COST**, displays both the original Lab 18 five-year chart and table, eight checks in a panel table, the three investor verdicts and editable memos side by side, and a number audit across **all** memos. The 1.0 Graham-threshold probe is available in the app as a control. To test the audit, type an unsupported `40.0%` into any memo; it should flag that investor **and** the whole panel, and disable saving.
+`SEC_USER_AGENT` must be set in your terminal's environment before making SEC requests. For PowerShell: `$env:SEC_USER_AGENT="Your Name you@example.com"`. Never commit personal email credentials. SEC calls have not been verified live in this workspace.
 
-## Known-answer verification
+## Skills and checks
 
-The instructor's COST reference values imply: **Buffett 3/3 pass; Graham 2/3 pass (current ratio 1.06 < 2.0); Burry 2/2 pass (latest liabilities/equity 1.49)**. The unit tests check the five published annual ratios and the rule outputs using **test fixtures only**. The production script fetches live values from SEC EDGAR; it does not embed instructor reference numbers.
+- [Buffett](.agents/skills/buffett-investor/SKILL.md): ROE at least 15% each year; owner earnings positive each year; owner earnings grew from first to last.
+- [Cathie Wood-inspired](.agents/skills/cathie-wood/SKILL.md): revenue grew first-to-last; latest year-over-year revenue growth at least 15%; operating cash flow grew first-to-last. **The 15% threshold is a user-selected classroom design choice, not ARK policy.** The app lets you probe it at 10%.
+- [Burry](.agents/skills/michael-burry/SKILL.md): operating cash flow at least net income every year; latest liabilities/equity no more than 2.
 
-Graham's **threshold probe**: lowering the requirement from **2.0 to 1.0** makes the COST current-ratio check pass. I **retain 2.0** because Graham's defensive liquidity screen should not be weakened just to improve an outcome (also recorded under his memo).
+ARK's actual process involves innovation identification, technology cost curves, market adoption, five-year forecasts and valuation, none of which can be established from these SEC financial metrics alone. [Source: ARK Invest](https://www.ark-invest.com/investment-process).
 
-## Project 2 fund company
+## Costco known-answer fixture (offline)
 
-My Lab 15 Project 2 uses **SGOV, BND and VT** ([prior work](https://github.com/llindali/lab15/blob/main/README.md)). **NVDA** is the largest position inside **VT**, according to [Vanguard's holdings as of 2026-09-30](https://advisors.vanguard.com/investments/products/vt/vanguard-total-world-stock-etf). Run `python panel.py NVDA` and enter `NVDA` in the app to obtain its actual five-year checks; the three agent skills then write NVDA-specific memos from those printed results. **Do not use COST values for NVDA.** If no actual SEC data can be retrieved, leave its metrics unknown and document that rather than fabricate a run.
+The tests use the instructor's COST 2022–2026 values as **synthetic test fixtures**, never as a substitute for live SEC retrieval. Expected checks: Buffett 3/3, Wood 2/3 (latest revenue growth fails the 15% classroom proxy), Burry 2/2. The [three memos](memos) use only printed script values. A memo with a numerical claim not printed by the script is flagged in the Streamlit interface. The latest growth threshold can be lowered to 10% for a sensitivity demonstration; this changes the Wood-inspired verdict without changing the underlying facts.
 
-## Panel decision
+## Project 2 company
 
-**Only with a condition:** I would use the panel to screen Project 2 companies **only after validating each SEC-sourced number and investigating disagreements, unknown values and company-specific qualitative risks**; a coded screen cannot establish fair value or replace financial-statement diligence.
+The selected fund is VT, whose largest holding was identified as NVDA in the earlier Lab 19 work. Run `python panel.py NVDA` and the app to produce its actual SEC panel. **NVDA live EDGAR numbers and company-specific memos have not been generated or verified here.** Missing values remain `not found` / `not known`. No claims about the company are fabricated.
 
-## Deliverable files
+## Submission / class-only work
 
-- [`panel.py`](panel.py) — EDGAR fetch, same-facts table, Buffett/Graham/Burry checks and numeric memo audit.
-- [`app.py`](app.py) — three-column panel, original chart, editable memos and unsupported-number flag.
-- [Buffett skill](.agents/skills/buffett-investor/SKILL.md), [Graham skill](.agents/skills/ben-graham/SKILL.md), [Burry skill](.agents/skills/michael-burry/SKILL.md).
-- [`memos/COST_buffett.md`](memos/COST_buffett.md), [`memos/COST_graham.md`](memos/COST_graham.md), [`memos/COST_burry.md`](memos/COST_burry.md).
-- [`tests/test_panel.py`](tests/test_panel.py) — COST reference-value rules, honest gaps, threshold probe, and memo-number flag.
-
-The partner oral explanations, classroom bull/bear exchange, and Brightspace checkout are intentionally left for class. **Live EDGAR verification still requires your real SEC User-Agent.**
-
-[Professor's Lab 19 instructions](https://github.com/CinderZhang/FIN43900-Fall2026/blob/main/lessons/week-11/lab-19-legend-panel.md).
-
+Files: [panel.py](panel.py), [app.py](app.py), [requirements.txt](requirements.txt), [tests/test_panel.py](tests/test_panel.py), three skill `SKILL.md` files, and three COST memos. Partner explanation, bull/bear exchange, personal reflection, Brightspace quiz and instructor permission for the substitution remain for class. This is a business-quality exercise, not investment advice.
